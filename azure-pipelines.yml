@@ -1,0 +1,34 @@
+trigger:
+- main
+
+stages:
+- stage: StageA
+  jobs:
+  - deployment: A1
+    environment: 
+      name: env1
+      resourceName: DevEnvironmentV
+      resourceType: virtualMachine
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: echo "##vso[task.setvariable variable=myVar;isOutput=true]true"
+            name: setvarStep
+          - script: |
+              echo "Value of myVar in the same Job : $(setVarStep.myVar)"
+            displayName: 'Verify variable in StageA'
+          - task: UseDotNet@2
+            inputs:
+              packageType: 'sdk'
+              version: '4.8'
+          - task: VSBuild@1
+            inputs:
+              solution: '**/*.sln'
+              msbuildArgs: '/p:Configuration=Release'
+          - task: IISWebAppDeploymentOnMachineGroup@0
+            inputs:
+              WebSiteName: 'HelloWorldApp'
+              Package: '$(Build.ArtifactStagingDirectory)/**/*.zip'
+              TakeAppOfflineFlag: true
+              AdditionalArguments: '-enable32BitAppOnWin64'
